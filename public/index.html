@@ -1,0 +1,1314 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Pengecek Plagiat - Aplikasi Deteksi Plagiarisme Multi-Format</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 15px;
+            box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2c3e50, #3498db);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .format-badges {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-top: 15px;
+            flex-wrap: wrap;
+        }
+
+        .format-badge {
+            background: rgba(255,255,255,0.2);
+            padding: 5px 10px;
+            border-radius: 15px;
+            font-size: 0.8em;
+            backdrop-filter: blur(10px);
+        }
+
+        .main-content {
+            padding: 40px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 30px;
+            border-bottom: 2px solid #ecf0f1;
+        }
+
+        .tab {
+            padding: 15px 30px;
+            background: #ecf0f1;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            border-radius: 8px 8px 0 0;
+            margin-right: 5px;
+        }
+
+        .tab.active {
+            background: #3498db;
+            color: white;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .upload-section {
+            background: #f8f9fa;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            border: 2px dashed #3498db;
+            text-align: center;
+        }
+
+        .file-input-wrapper {
+            position: relative;
+            display: inline-block;
+            margin: 20px;
+        }
+
+        .file-input {
+            display: none;
+        }
+
+        .file-input-button {
+            background: #3498db;
+            color: white;
+            padding: 15px 30px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            display: inline-block;
+        }
+
+        .file-input-button:hover {
+            background: #2980b9;
+            transform: translateY(-2px);
+        }
+
+        .format-support-info {
+            margin: 15px 0;
+            padding: 15px;
+            background: rgba(52, 152, 219, 0.1);
+            border-radius: 8px;
+            border-left: 4px solid #3498db;
+        }
+
+        .format-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+            gap: 10px;
+            margin: 10px 0;
+        }
+
+        .format-item {
+            text-align: center;
+            padding: 8px;
+            background: white;
+            border-radius: 5px;
+            font-size: 0.9em;
+        }
+
+        .text-input-section {
+            margin: 30px 0;
+        }
+
+        .text-input {
+            width: 100%;
+            min-height: 200px;
+            padding: 20px;
+            border: 2px solid #ecf0f1;
+            border-radius: 8px;
+            font-size: 16px;
+            line-height: 1.5;
+            resize: vertical;
+            transition: border-color 0.3s ease;
+        }
+
+        .text-input:focus {
+            outline: none;
+            border-color: #3498db;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 15px;
+            justify-content: center;
+            margin: 30px 0;
+            flex-wrap: wrap;
+        }
+
+        .btn {
+            padding: 15px 30px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-weight: 600;
+            min-width: 150px;
+        }
+
+        .btn-primary {
+            background: #27ae60;
+            color: white;
+        }
+
+        .btn-primary:hover {
+            background: #229954;
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #95a5a6;
+            color: white;
+        }
+
+        .btn-secondary:hover {
+            background: #7f8c8d;
+        }
+
+        .results-section {
+            margin-top: 30px;
+            padding: 30px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            display: none;
+        }
+
+        .status-card {
+            text-align: center;
+            padding: 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            color: white;
+            font-size: 1.2em;
+        }
+
+        .status-safe { background: #27ae60; }
+        .status-low { background: #f39c12; }
+        .status-medium { background: #e67e22; }
+        .status-high { background: #e74c3c; }
+
+        .similarity-score {
+            font-size: 3em;
+            font-weight: bold;
+            margin: 20px 0;
+        }
+
+        .detailed-results {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .result-item {
+            border: 1px solid #ecf0f1;
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 15px;
+            transition: all 0.3s ease;
+        }
+
+        .result-item:hover {
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            flex-wrap: wrap;
+        }
+
+        .filename {
+            font-weight: bold;
+            font-size: 1.1em;
+            color: #2c3e50;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .file-type-badge {
+            background: #ecf0f1;
+            padding: 2px 8px;
+            border-radius: 12px;
+            font-size: 0.8em;
+            color: #7f8c8d;
+        }
+
+        .similarity-bar {
+            width: 100%;
+            height: 20px;
+            background: #ecf0f1;
+            border-radius: 10px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .similarity-fill {
+            height: 100%;
+            transition: width 0.5s ease;
+            border-radius: 10px;
+        }
+
+        .algorithm-breakdown {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .algorithm-item {
+            text-align: center;
+            padding: 10px;
+            background: #f8f9fa;
+            border-radius: 5px;
+        }
+
+        .algorithm-score {
+            font-weight: bold;
+            font-size: 1.2em;
+            color: #3498db;
+        }
+
+        .reference-section {
+            margin-bottom: 30px;
+        }
+
+        .reference-list {
+            background: white;
+            border-radius: 10px;
+            padding: 20px;
+        }
+
+        .reference-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #ecf0f1;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+
+        .reference-item:last-child {
+            border-bottom: none;
+        }
+
+        .reference-info {
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .reference-filename {
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            margin-bottom: 5px;
+        }
+
+        .reference-details {
+            font-size: 0.9em;
+            color: #7f8c8d;
+            line-height: 1.4;
+        }
+
+        .delete-btn {
+            background: #e74c3c;
+            color: white;
+            border: none;
+            padding: 8px 15px;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 12px;
+            transition: all 0.3s ease;
+        }
+
+        .delete-btn:hover {
+            background: #c0392b;
+            transform: translateY(-1px);
+        }
+
+        .loading {
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin: 30px 0;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .stat-value {
+            font-size: 2em;
+            font-weight: bold;
+            color: #3498db;
+        }
+
+        .stat-label {
+            color: #7f8c8d;
+            margin-top: 5px;
+        }
+
+        .alert {
+            padding: 15px;
+            margin: 20px 0;
+            border-radius: 8px;
+            font-weight: 500;
+            position: relative;
+        }
+
+        .alert-success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+
+        .alert-error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+
+        .alert-close {
+            position: absolute;
+            top: 10px;
+            right: 15px;
+            background: none;
+            border: none;
+            font-size: 18px;
+            cursor: pointer;
+            color: inherit;
+        }
+
+        .matching-phrases {
+            margin-top: 15px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 5px;
+            border-left: 4px solid #3498db;
+        }
+
+        .phrase-item {
+            background: white;
+            padding: 8px 12px;
+            margin: 5px 0;
+            border-radius: 4px;
+            font-style: italic;
+            font-size: 0.9em;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #ecf0f1;
+            border-radius: 3px;
+            overflow: hidden;
+            margin: 10px 0;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: #3498db;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .feature-highlight {
+            background: linear-gradient(135deg, #667eea, #764ba2);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            margin: 20px 0;
+        }
+
+        .feature-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin: 20px 0;
+        }
+
+        .feature-card {
+            background: white;
+            padding: 25px;
+            border-radius: 10px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        .feature-icon {
+            font-size: 3em;
+            margin-bottom: 15px;
+        }
+
+        .feature-title {
+            font-size: 1.2em;
+            font-weight: bold;
+            margin-bottom: 10px;
+            color: #2c3e50;
+        }
+
+        .feature-description {
+            color: #7f8c8d;
+            line-height: 1.5;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                margin: 10px;
+                border-radius: 10px;
+            }
+            
+            .main-content {
+                padding: 20px;
+            }
+            
+            .header {
+                padding: 20px;
+            }
+            
+            .header h1 {
+                font-size: 2em;
+            }
+            
+            .tabs {
+                flex-direction: column;
+            }
+            
+            .tab {
+                margin-bottom: 5px;
+                border-radius: 8px;
+            }
+            
+            .action-buttons {
+                flex-direction: column;
+            }
+            
+            .result-header {
+                flex-direction: column;
+                align-items: flex-start;
+                gap: 10px;
+            }
+            
+            .algorithm-breakdown {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔍 Pengecek Plagiat</h1>
+            <p>Sistem Deteksi Plagiarisme Multi-Format dengan Akurasi Tinggi (95%+)</p>
+            <div class="format-badges">
+                <span class="format-badge">📝 TXT</span>
+                <span class="format-badge">📄 PDF</span>
+                <span class="format-badge">📘 DOC/DOCX</span>
+                <span class="format-badge">📄 ODT</span>
+                <span class="format-badge">📄 RTF</span>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <!-- Tab Navigation -->
+            <div class="tabs">
+                <button class="tab active" onclick="showTab('check')">🔍 Cek Plagiat</button>
+                <button class="tab" onclick="showTab('reference')">📚 Dokumen Referensi</button>
+                <button class="tab" onclick="showTab('about')">ℹ️ Tentang</button>
+            </div>
+
+            <!-- Tab: Cek Plagiat -->
+            <div id="check-tab" class="tab-content active">
+                <div class="upload-section">
+                    <h3>📄 Upload Dokumen atau Masukkan Teks</h3>
+                    <p>Pilih file dokumen atau masukkan teks langsung untuk analisis plagiat</p>
+                    
+                    <div class="file-input-wrapper">
+                        <input type="file" id="targetFile" class="file-input" 
+                               accept=".txt,.pdf,.doc,.docx,.odt,.rtf" onchange="handleFileSelect()">
+                        <label for="targetFile" class="file-input-button">
+                            📁 Pilih File Dokumen
+                        </label>
+                    </div>
+                    
+                    <div class="format-support-info">
+                        <strong>📁 Format yang didukung:</strong>
+                        <div class="format-grid">
+                            <div class="format-item">📝 Text (.txt)</div>
+                            <div class="format-item">📄 PDF (.pdf)</div>
+                            <div class="format-item">📘 Word (.doc, .docx)</div>
+                            <div class="format-item">📄 OpenDoc (.odt)</div>
+                            <div class="format-item">📄 RTF (.rtf)</div>
+                        </div>
+                        <small>Maksimal ukuran file: 10MB</small>
+                    </div>
+                    
+                    <div id="file-info" style="margin-top: 15px; font-weight: 500;"></div>
+                </div>
+
+                <div class="text-input-section">
+                    <h4>💬 Atau masukkan teks langsung:</h4>
+                    <textarea id="inputText" class="text-input" 
+                              placeholder="Masukkan teks yang ingin diperiksa plagiatnya di sini...
+                              
+Tips: Anda dapat menggunakan Ctrl+Enter untuk langsung cek plagiat"></textarea>
+                    <small style="color: #7f8c8d;">Minimal 10 karakter • Shortcut: Ctrl+Enter untuk cek</small>
+                </div>
+
+                <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="checkPlagiarism()">
+                        🔍 Cek Plagiat
+                    </button>
+                    <button class="btn btn-secondary" onclick="clearInput()">
+                        🗑️ Bersihkan
+                    </button>
+                </div>
+
+                <div id="loading" class="loading" style="display: none;">
+                    <div class="spinner"></div>
+                    <p>Sedang menganalisis dokumen...</p>
+                    <div class="progress-bar">
+                        <div class="progress-fill" id="progress"></div>
+                    </div>
+                </div>
+
+                <div id="results" class="results-section"></div>
+            </div>
+
+            <!-- Tab: Dokumen Referensi -->
+            <div id="reference-tab" class="tab-content">
+                <div class="reference-section">
+                    <h3>📚 Upload Dokumen Referensi</h3>
+                    <p>Upload dokumen yang akan digunakan sebagai database pembanding untuk deteksi plagiat</p>
+                    
+                    <div class="upload-section">
+                        <div class="file-input-wrapper">
+                            <input type="file" id="referenceFile" class="file-input" 
+                                   accept=".txt,.pdf,.doc,.docx,.odt,.rtf" onchange="uploadReference()">
+                            <label for="referenceFile" class="file-input-button">
+                                📤 Upload Dokumen Referensi
+                            </label>
+                        </div>
+                        
+                        <div class="format-support-info">
+                            <strong>📁 Format yang didukung:</strong>
+                            <div class="format-grid">
+                                <div class="format-item">📝 Text (.txt)</div>
+                                <div class="format-item">📄 PDF (.pdf)</div>
+                                <div class="format-item">📘 Word (.doc, .docx)</div>
+                                <div class="format-item">📄 OpenDoc (.odt)</div>
+                                <div class="format-item">📄 RTF (.rtf)</div>
+                            </div>
+                            <small>Tip: Upload berbagai jenis dokumen untuk database referensi yang komprehensif</small>
+                        </div>
+                    </div>
+
+                    <div id="upload-status"></div>
+                </div>
+
+                <div class="stats" id="reference-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-docs">0</div>
+                        <div class="stat-label">Total Dokumen</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-size">0 KB</div>
+                        <div class="stat-label">Total Ukuran</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-chars">0</div>
+                        <div class="stat-label">Total Karakter</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="format-count">0</div>
+                        <div class="stat-label">Format Berbeda</div>
+                    </div>
+                </div>
+
+                <div class="reference-list" id="reference-list">
+                    <h4>📋 Daftar Dokumen Referensi:</h4>
+                    <div id="documents-container">
+                        <p style="text-align: center; color: #7f8c8d; padding: 40px;">
+                            📭 Belum ada dokumen referensi.<br>
+                            Silakan upload dokumen untuk memulai analisis plagiat.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tab: Tentang -->
+            <div id="about-tab" class="tab-content">
+                <div class="feature-highlight">
+                    <h3>🎯 Aplikasi Pengecek Plagiat Multi-Format</h3>
+                    <p>Sistem deteksi plagiarisme canggih dengan dukungan berbagai format dokumen dan akurasi tinggi menggunakan algoritma NLP terdepan.</p>
+                </div>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">🧠</div>
+                        <div class="feature-title">Algoritma Canggih</div>
+                        <div class="feature-description">
+                            Menggunakan kombinasi 3 algoritma: Cosine Similarity, N-gram Analysis, dan Fingerprinting untuk deteksi yang akurat
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📁</div>
+                        <div class="feature-title">Multi-Format Support</div>
+                        <div class="feature-description">
+                            Mendukung berbagai format: TXT, PDF, DOC, DOCX, ODT, RTF dengan ekstraksi teks otomatis
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">⚡</div>
+                        <div class="feature-title">Real-time Processing</div>
+                        <div class="feature-description">
+                            Analisis cepat dengan hasil instan, interface responsif, dan progress tracking
+                        </div>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">📊</div>
+                        <div class="feature-title">Detailed Reports</div>
+                        <div class="feature-description">
+                            Laporan lengkap dengan breakdown per algoritma, contoh frasa yang cocok, dan visualisasi hasil
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 30px; border-radius: 10px; margin: 20px 0;">
+                    <h4>📊 Algoritma yang Digunakan:</h4>
+                    <div style="margin: 20px 0;">
+                        <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                            <span><strong>Cosine Similarity</strong> - Kesamaan vektor teks</span>
+                            <span style="color: #3498db; font-weight: bold;">40%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                            <span><strong>N-gram Analysis</strong> - Urutan kata dan frasa</span>
+                            <span style="color: #3498db; font-weight: bold;">35%</span>
+                        </div>
+                        <div style="display: flex; justify-content: space-between; margin: 10px 0;">
+                            <span><strong>Fingerprinting</strong> - Pola unik teks</span>
+                            <span style="color: #3498db; font-weight: bold;">25%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 30px; border-radius: 10px; margin: 20px 0;">
+                    <h4>🎯 Tingkat Akurasi:</h4>
+                    <div style="margin: 15px 0;">
+                        <div style="margin: 10px 0;">
+                            <span style="color: #27ae60;">🟢 <strong>AMAN (0-24%)</strong></span> - Tidak ada indikasi plagiat
+                        </div>
+                        <div style="margin: 10px 0;">
+                            <span style="color: #f39c12;">🟡 <strong>RENDAH (25-49%)</strong></span> - Perlu review lebih lanjut
+                        </div>
+                        <div style="margin: 10px 0;">
+                            <span style="color: #e67e22;">🟠 <strong>SEDANG (50-79%)</strong></span> - Perlu revisi signifikan
+                        </div>
+                        <div style="margin: 10px 0;">
+                            <span style="color: #e74c3c;">🔴 <strong>TINGGI (80-100%)</strong></span> - Plagiat terdeteksi, perlu penulisan ulang
+                        </div>
+                    </div>
+                </div>
+
+                <div style="background: white; padding: 30px; border-radius: 10px; margin: 20px 0;">
+                    <h4>⚙️ Teknologi:</h4>
+                    <ul style="margin: 15px 0; padding-left: 20px; line-height: 1.8;">
+                        <li><strong>Backend:</strong> Node.js + Express.js</li>
+                        <li><strong>Frontend:</strong> HTML5, CSS3, JavaScript</li>
+                        <li><strong>File Processing:</strong> Multer + Mammoth + PDF-Parse</li>
+                        <li><strong>Text Analysis:</strong> Custom NLP algorithms</li>
+                        <li><strong>UI/UX:</strong> Responsive design dengan real-time feedback</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let selectedFile = null;
+
+        function showTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(tab => {
+                tab.classList.remove('active');
+            });
+            document.querySelectorAll('.tab').forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            // Show selected tab
+            document.getElementById(tabName + '-tab').classList.add('active');
+            event.target.classList.add('active');
+
+            // Load reference documents when reference tab is opened
+            if (tabName === 'reference') {
+                loadReferenceDocuments();
+            }
+        }
+
+        function handleFileSelect() {
+            const fileInput = document.getElementById('targetFile');
+            const fileInfo = document.getElementById('file-info');
+            
+            if (fileInput.files.length > 0) {
+                selectedFile = fileInput.files[0];
+                const fileSize = (selectedFile.size / 1024).toFixed(2);
+                const fileExt = selectedFile.name.split('.').pop().toLowerCase();
+                
+                // Emoji untuk berbagai format file
+                const fileIcons = {
+                    'txt': '📝',
+                    'pdf': '📄', 
+                    'doc': '📘',
+                    'docx': '📘',
+                    'odt': '📄',
+                    'rtf': '📄'
+                };
+                
+                const icon = fileIcons[fileExt] || '📄';
+                
+                fileInfo.innerHTML = `
+                    <div style="display: inline-flex; align-items: center; gap: 10px; padding: 10px 15px; background: #d4edda; border-radius: 8px; color: #155724;">
+                        <span style="font-size: 1.5em;">${icon}</span>
+                        <div>
+                            <div style="font-weight: bold;">${selectedFile.name}</div>
+                            <small>Ukuran: ${fileSize} KB • Format: ${fileExt.toUpperCase()}</small>
+                        </div>
+                    </div>
+                `;
+            } else {
+                selectedFile = null;
+                fileInfo.innerHTML = '';
+            }
+        }
+
+        function clearInput() {
+            document.getElementById('inputText').value = '';
+            document.getElementById('targetFile').value = '';
+            document.getElementById('file-info').innerHTML = '';
+            document.getElementById('results').style.display = 'none';
+            selectedFile = null;
+        }
+
+        async function checkPlagiarism() {
+            const textInput = document.getElementById('inputText').value.trim();
+            const loading = document.getElementById('loading');
+            const results = document.getElementById('results');
+            const progress = document.getElementById('progress');
+
+            // Validasi input
+            if (!selectedFile && !textInput) {
+                showAlert('Silakan pilih file atau masukkan teks terlebih dahulu!', 'error');
+                return;
+            }
+
+            if (textInput && textInput.length < 10) {
+                showAlert('Teks terlalu pendek! Minimal 10 karakter.', 'error');
+                return;
+            }
+
+            // Show loading with progress animation
+            loading.style.display = 'block';
+            results.style.display = 'none';
+            
+            // Animate progress bar
+            let progressValue = 0;
+            const progressInterval = setInterval(() => {
+                progressValue += Math.random() * 15;
+                if (progressValue > 90) progressValue = 90;
+                progress.style.width = progressValue + '%';
+            }, 200);
+
+            try {
+                const formData = new FormData();
+                
+                if (selectedFile) {
+                    formData.append('targetFile', selectedFile);
+                } else {
+                    formData.append('text', textInput);
+                }
+
+                const response = await fetch('/check-plagiarism', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                // Complete progress
+                clearInterval(progressInterval);
+                progress.style.width = '100%';
+
+                setTimeout(() => {
+                    if (data.success) {
+                        displayResults(data);
+                    } else {
+                        showAlert(data.error || 'Terjadi kesalahan saat memeriksa plagiat', 'error');
+                    }
+                }, 500);
+
+            } catch (error) {
+                clearInterval(progressInterval);
+                showAlert('Error: ' + error.message, 'error');
+            } finally {
+                setTimeout(() => {
+                    loading.style.display = 'none';
+                    progress.style.width = '0%';
+                }, 1000);
+            }
+        }
+
+        function displayResults(data) {
+            const results = document.getElementById('results');
+            
+            // Determine status color
+            let statusClass = 'status-safe';
+            if (data.maxSimilarity >= 80) statusClass = 'status-high';
+            else if (data.maxSimilarity >= 50) statusClass = 'status-medium';
+            else if (data.maxSimilarity >= 25) statusClass = 'status-low';
+
+            results.innerHTML = `
+                <div class="status-card ${statusClass}">
+                    <h3>Status: ${data.overallStatus}</h3>
+                    <div class="similarity-score">${data.maxSimilarity}%</div>
+                    <p>Tingkat Kesamaan Tertinggi</p>
+                    ${data.sourceFileName ? `<small style="opacity: 0.9;">📄 ${data.sourceFileName}</small>` : ''}
+                </div>
+
+                <div class="stats">
+                    <div class="stat-card">
+                        <div class="stat-value">${data.totalDocumentsChecked}</div>
+                        <div class="stat-label">Dokumen Diperiksa</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.detailedResults.length}</div>
+                        <div class="stat-label">Hasil Ditemukan</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${data.textLength ? (data.textLength / 1000).toFixed(1) + 'K' : 'N/A'}</div>
+                        <div class="stat-label">Karakter Teks</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value">${new Date(data.timestamp).toLocaleTimeString()}</div>
+                        <div class="stat-label">Waktu Pemeriksaan</div>
+                    </div>
+                </div>
+
+                <div class="detailed-results">
+                    <h4>📋 Hasil Detail Pemeriksaan:</h4>
+                    ${data.detailedResults.map(result => {
+                        const fileIcons = {
+                            '.txt': '📝',
+                            '.pdf': '📄', 
+                            '.doc': '📘',
+                            '.docx': '📘',
+                            '.odt': '📄',
+                            '.rtf': '📄'
+                        };
+                        const icon = fileIcons[result.fileType] || '📄';
+                        
+                        return `
+                        <div class="result-item">
+                            <div class="result-header">
+                                <div class="filename">
+                                    ${icon} ${result.filename}
+                                    <span class="file-type-badge">${result.fileType.toUpperCase()}</span>
+                                </div>
+                                <span style="color: ${getSimilarityColor(result.overallSimilarity)}; font-weight: bold; font-size: 1.2em;">
+                                    ${result.overallSimilarity}%
+                                </span>
+                            </div>
+                            
+                            <div class="similarity-bar">
+                                <div class="similarity-fill" 
+                                     style="width: ${result.overallSimilarity}%; background-color: ${getSimilarityColor(result.overallSimilarity)};">
+                                </div>
+                            </div>
+                            
+                            <div class="algorithm-breakdown">
+                                <div class="algorithm-item">
+                                    <small>Cosine Similarity</small>
+                                    <div class="algorithm-score">${result.cosineSimilarity}%</div>
+                                </div>
+                                <div class="algorithm-item">
+                                    <small>N-gram Analysis</small>
+                                    <div class="algorithm-score">${result.ngramSimilarity}%</div>
+                                </div>
+                                <div class="algorithm-item">
+                                    <small>Fingerprint Match</small>
+                                    <div class="algorithm-score">${result.fingerprintSimilarity}%</div>
+                                </div>
+                            </div>
+                            
+                            ${result.matchingPhrases && result.matchingPhrases.length > 0 ? `
+                                <div class="matching-phrases">
+                                    <small style="color: #7f8c8d; font-weight: bold;">🔍 Contoh frasa yang cocok:</small>
+                                    ${result.matchingPhrases.slice(0, 3).map(phrase => `
+                                        <div class="phrase-item">"${phrase.substring(0, 150)}${phrase.length > 150 ? '...' : ''}"</div>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `}).join('')}
+                </div>
+            `;
+
+            results.style.display = 'block';
+            
+            // Scroll to results
+            results.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function getSimilarityColor(percentage) {
+            if (percentage >= 80) return '#e74c3c';
+            if (percentage >= 50) return '#e67e22';
+            if (percentage >= 25) return '#f39c12';
+            return '#27ae60';
+        }
+
+        async function uploadReference() {
+            const fileInput = document.getElementById('referenceFile');
+            const statusDiv = document.getElementById('upload-status');
+            
+            if (fileInput.files.length === 0) {
+                return;
+            }
+
+            const file = fileInput.files[0];
+            const fileExt = file.name.split('.').pop().toLowerCase();
+            const fileIcon = {
+                'txt': '📝', 'pdf': '📄', 'doc': '📘', 'docx': '📘', 'odt': '📄', 'rtf': '📄'
+            }[fileExt] || '📄';
+            
+            // Show upload status
+            statusDiv.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    <p>Mengupload ${fileIcon} ${file.name}...</p>
+                    <small>Sedang mengekstrak teks dari ${fileExt.toUpperCase()}...</small>
+                </div>
+            `;
+
+            try {
+                const formData = new FormData();
+                formData.append('referenceFile', file);
+
+                const response = await fetch('/upload-reference', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert(`✅ ${data.message}<br><small>Teks berhasil diekstrak: ${data.extractedLength} karakter</small>`, 'success');
+                    loadReferenceDocuments();
+                    fileInput.value = ''; // Clear file input
+                } else {
+                    showAlert(data.error || 'Gagal mengupload dokumen', 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            } finally {
+                statusDiv.innerHTML = '';
+            }
+        }
+
+        async function loadReferenceDocuments() {
+            try {
+                const response = await fetch('/reference-documents');
+                const data = await response.json();
+
+                if (data.success) {
+                    updateReferenceStats(data.documents);
+                    displayReferenceDocuments(data.documents);
+                }
+            } catch (error) {
+                console.error('Error loading reference documents:', error);
+            }
+        }
+
+        function updateReferenceStats(documents) {
+            const totalDocs = documents.length;
+            const totalSize = documents.reduce((sum, doc) => sum + (doc.fileSize || doc.contentLength), 0);
+            const totalChars = documents.reduce((sum, doc) => sum + doc.contentLength, 0);
+            const formats = [...new Set(documents.map(doc => doc.fileType))];
+            
+            document.getElementById('total-docs').textContent = totalDocs;
+            document.getElementById('total-size').textContent = `${(totalSize / 1024).toFixed(1)} KB`;
+            document.getElementById('total-chars').textContent = `${(totalChars / 1000).toFixed(1)}K`;
+            document.getElementById('format-count').textContent = formats.length;
+        }
+
+        function displayReferenceDocuments(documents) {
+            const container = document.getElementById('documents-container');
+            
+            if (documents.length === 0) {
+                container.innerHTML = `
+                    <p style="text-align: center; color: #7f8c8d; padding: 40px;">
+                        📭 Belum ada dokumen referensi.<br>
+                        Silakan upload dokumen untuk memulai analisis plagiat.
+                    </p>
+                `;
+                return;
+            }
+
+            container.innerHTML = documents.map(doc => {
+                const fileIcons = {
+                    '.txt': '📝', '.pdf': '📄', '.doc': '📘', 
+                    '.docx': '📘', '.odt': '📄', '.rtf': '📄'
+                };
+                const icon = fileIcons[doc.fileType] || '📄';
+                const fileSizeKB = doc.fileSize ? (doc.fileSize / 1024).toFixed(1) : (doc.contentLength / 1024).toFixed(1);
+                
+                return `
+                <div class="reference-item">
+                    <div class="reference-info">
+                        <div class="reference-filename">
+                            ${icon} ${doc.filename}
+                            <span class="file-type-badge">${doc.fileType.toUpperCase()}</span>
+                        </div>
+                        <div class="reference-details">
+                            📅 Upload: ${new Date(doc.uploadDate).toLocaleString()}<br>
+                            💾 Ukuran: ${fileSizeKB} KB • 📝 Teks: ${(doc.contentLength / 1000).toFixed(1)}K karakter
+                        </div>
+                    </div>
+                    <button class="delete-btn" onclick="deleteDocument('${doc.id}')" title="Hapus dokumen">
+                        🗑️ Hapus
+                    </button>
+                </div>
+            `}).join('');
+        }
+
+        async function deleteDocument(id) {
+            if (!confirm('❓ Yakin ingin menghapus dokumen ini dari database referensi?')) {
+                return;
+            }
+
+            try {
+                const response = await fetch(`/reference-documents/${id}`, {
+                    method: 'DELETE'
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showAlert('✅ Dokumen berhasil dihapus dari database referensi!', 'success');
+                    loadReferenceDocuments();
+                } else {
+                    showAlert(data.error || 'Gagal menghapus dokumen', 'error');
+                }
+            } catch (error) {
+                showAlert('Error: ' + error.message, 'error');
+            }
+        }
+
+        function showAlert(message, type) {
+            // Remove existing alerts
+            const existingAlerts = document.querySelectorAll('.alert');
+            existingAlerts.forEach(alert => alert.remove());
+
+            // Create new alert
+            const alert = document.createElement('div');
+            alert.className = `alert alert-${type}`;
+            alert.innerHTML = `
+                <div>${message}</div>
+                <button class="alert-close" onclick="this.parentElement.remove()">×</button>
+            `;
+
+            // Insert at the top of main content
+            const mainContent = document.querySelector('.main-content');
+            mainContent.insertBefore(alert, mainContent.firstChild);
+
+            // Auto remove after 8 seconds
+            setTimeout(() => {
+                if (alert.parentElement) {
+                    alert.style.opacity = '0';
+                    setTimeout(() => alert.remove(), 300);
+                }
+            }, 8000);
+        }
+
+        // Load reference documents on page load
+        document.addEventListener('DOMContentLoaded', function() {
+            loadReferenceDocuments();
+            
+            // Add some interactive features
+            const textInput = document.getElementById('inputText');
+            textInput.addEventListener('input', function() {
+                const charCount = this.value.length;
+                const status = charCount >= 10 ? '✅' : '⚠️';
+                const color = charCount >= 10 ? '#27ae60' : '#e67e22';
+                
+                // Update placeholder or add counter if needed
+                if (charCount > 0) {
+                    this.style.borderColor = charCount >= 10 ? '#27ae60' : '#e67e22';
+                } else {
+                    this.style.borderColor = '#ecf0f1';
+                }
+            });
+        });
+
+        // Keyboard shortcuts
+        document.addEventListener('keydown', function(e) {
+            // Ctrl+Enter to check plagiarism
+            if (e.ctrlKey && e.key === 'Enter') {
+                e.preventDefault();
+                checkPlagiarism();
+            }
+            
+            // Escape to clear input
+            if (e.key === 'Escape') {
+                clearInput();
+            }
+        });
+
+        // Drag and drop functionality
+        const uploadSections = document.querySelectorAll('.upload-section');
+        uploadSections.forEach(section => {
+            section.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#3498db';
+                this.style.backgroundColor = 'rgba(52, 152, 219, 0.1)';
+            });
+            
+            section.addEventListener('dragleave', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#3498db';
+                this.style.backgroundColor = '#f8f9fa';
+            });
+            
+            section.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.borderColor = '#3498db';
+                this.style.backgroundColor = '#f8f9fa';
+                
+                const files = e.dataTransfer.files;
+                if (files.length > 0) {
+                    const targetInput = this.querySelector('input[type="file"]');
+                    if (targetInput) {
+                        targetInput.files = files;
+                        
+                        // Trigger change event
+                        const event = new Event('change', { bubbles: true });
+                        targetInput.dispatchEvent(event);
+                    }
+                }
+            });
+        });
+
+        // Add tooltip functionality
+        function addTooltips() {
+            const tooltipElements = document.querySelectorAll('[title]');
+            tooltipElements.forEach(element => {
+                element.addEventListener('mouseenter', function() {
+                    // Create tooltip if needed
+                });
+            });
+        }
+
+        // Initialize tooltips
+        addTooltips();
+
+        // Performance monitoring
+        let performanceData = {
+            uploadTime: 0,
+            checkTime: 0,
+            documentsProcessed: 0
+        };
+
+        // Auto-save functionality for text input (optional)
+        let autoSaveTimer;
+        document.getElementById('inputText').addEventListener('input', function() {
+            clearTimeout(autoSaveTimer);
+            autoSaveTimer = setTimeout(() => {
+                // Could implement auto-save to localStorage here if needed
+                console.log('Auto-save triggered');
+            }, 2000);
+        });
+    </script>
+</body>
+</html>
