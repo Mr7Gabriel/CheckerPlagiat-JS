@@ -57,8 +57,9 @@ const upload = multer({
     }
 });
 
-// In-memory database untuk menyimpan dokumen referensi
+// In-memory databases
 let documentDatabase = [];
+let historyDatabase = []; // NEW: Database untuk menyimpan history pemeriksaan
 
 // Fungsi untuk mengekstrak teks dari berbagai format file
 async function extractTextFromFile(filePath, originalName) {
@@ -91,7 +92,6 @@ async function extractTextFromFile(filePath, originalName) {
                 
             case '.doc':
                 console.log('Processing DOC file...');
-                // Untuk .doc lama, kita coba dengan mammoth dulu
                 try {
                     const docBuffer = fs.readFileSync(filePath);
                     const docResult = await mammoth.extractRawText({ buffer: docBuffer });
@@ -105,12 +105,11 @@ async function extractTextFromFile(filePath, originalName) {
                 
             case '.odt':
                 console.log('Processing ODT file...');
-                // Untuk OpenDocument Text, kita baca sebagai text mentah dan bersihkan XML
                 const odtContent = fs.readFileSync(filePath, 'utf8');
                 const cleanedOdt = odtContent
-                    .replace(/<[^>]*>/g, ' ')           // Hapus XML tags
-                    .replace(/&[a-zA-Z0-9#]+;/g, ' ')   // Hapus HTML entities
-                    .replace(/\s+/g, ' ')               // Normalisasi spasi
+                    .replace(/<[^>]*>/g, ' ')           
+                    .replace(/&[a-zA-Z0-9#]+;/g, ' ')   
+                    .replace(/\s+/g, ' ')               
                     .trim();
                 
                 if (!cleanedOdt || cleanedOdt.length < 10) {
@@ -120,7 +119,6 @@ async function extractTextFromFile(filePath, originalName) {
                 
             case '.rtf':
                 console.log('Processing RTF file...');
-                // Untuk RTF, baca dan bersihkan formatting codes
                 const rtfContent = fs.readFileSync(filePath, 'utf8');
                 const cleanedRtf = cleanRTF(rtfContent);
                 if (!cleanedRtf || cleanedRtf.trim().length === 0) {
@@ -140,15 +138,14 @@ async function extractTextFromFile(filePath, originalName) {
 // Fungsi untuk membersihkan RTF content
 function cleanRTF(rtfContent) {
     try {
-        // Hapus RTF control codes dan formatting
         let cleanText = rtfContent
-            .replace(/\\[a-z]+\d*/gi, ' ')        // RTF control words
-            .replace(/\{[^}]*\}/g, ' ')           // RTF groups
-            .replace(/\\['"][a-f0-9]{2}/gi, ' ')  // Hex characters
-            .replace(/\\\\/g, '\\')               // Escaped backslashes
-            .replace(/\\[{}]/g, '')               // Escaped braces
-            .replace(/\\[^a-zA-Z]/g, ' ')         // Other control characters
-            .replace(/\s+/g, ' ')                 // Multiple spaces
+            .replace(/\\[a-z]+\d*/gi, ' ')        
+            .replace(/\{[^}]*\}/g, ' ')           
+            .replace(/\\['"][a-f0-9]{2}/gi, ' ')  
+            .replace(/\\\\/g, '\\')               
+            .replace(/\\[{}]/g, '')               
+            .replace(/\\[^a-zA-Z]/g, ' ')         
+            .replace(/\s+/g, ' ')                 
             .trim();
         
         return cleanText;
@@ -173,10 +170,9 @@ function validateAndSanitizeText(text, filename = '') {
         throw new Error(`File ${filename} terlalu pendek untuk dianalisis (minimal 10 karakter)`);
     }
     
-    // Bersihkan karakter yang tidak diinginkan
     const sanitizedText = trimmedText
-        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ') // Remove control characters
-        .replace(/\s+/g, ' ')  // Normalize whitespace
+        .replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, ' ') 
+        .replace(/\s+/g, ' ')  
         .trim();
     
     return sanitizedText;
@@ -186,8 +182,8 @@ function validateAndSanitizeText(text, filename = '') {
 function preprocessText(text) {
     return text
         .toLowerCase()
-        .replace(/[^\w\s]/g, '') // Hapus karakter khusus
-        .replace(/\s+/g, ' ')    // Normalisasi spasi
+        .replace(/[^\w\s]/g, '') 
+        .replace(/\s+/g, ' ')    
         .trim();
 }
 
@@ -213,7 +209,6 @@ function calculateTF(text) {
         tf[word] = (tf[word] || 0) + 1;
     });
     
-    // Normalisasi dengan total kata
     Object.keys(tf).forEach(word => {
         tf[word] = tf[word] / totalWords;
     });
@@ -278,6 +273,170 @@ function createFingerprint(text, windowSize = 50) {
     return fingerprints;
 }
 
+// NEW: Fungsi AI untuk generate rekomendasi
+function generateAIRecommendations(plagiarismResults, targetText) {
+    const maxSimilarity = Math.max(...plagiarismResults.map(r => r.overallSimilarity));
+    const recommendations = [];
+    
+    // Analisis tingkat plagiat dan generate rekomendasi
+    if (maxSimilarity >= 80) {
+        recommendations.push({
+            priority: 'WAJIB',
+            type: 'critical',
+            title: 'Rewrite Komprehensif Diperlukan',
+            description: 'Dokumen menunjukkan tingkat plagiat yang sangat tinggi (≥80%). Penulisan ulang komprehensif sangat diperlukan.',
+            actions: [
+                'Tulis ulang seluruh bagian yang teridentifikasi plagiat',
+                'Gunakan sudut pandang dan struktur kalimat yang berbeda',
+                'Tambahkan analisis dan interpretasi pribadi',
+                'Berikan kutipan yang tepat untuk referensi'
+            ],
+            severity: 'high'
+        });
+        
+        recommendations.push({
+            priority: 'WAJIB',
+            type: 'citation',
+            title: 'Perbaiki Sistem Sitasi',
+            description: 'Implementasikan sistem sitasi yang konsisten untuk menghindari plagiat tidak disengaja.',
+            actions: [
+                'Gunakan format sitasi standar (APA, MLA, Chicago)',
+                'Berikan kutipan untuk setiap ide yang bukan milik Anda',
+                'Buat daftar pustaka yang lengkap',
+                'Gunakan tools manajemen referensi seperti Zotero atau Mendeley'
+            ],
+            severity: 'high'
+        });
+    } else if (maxSimilarity >= 50) {
+        recommendations.push({
+            priority: 'SEDANG',
+            type: 'paraphrasing',
+            title: 'Tingkatkan Teknik Parafrase',
+            description: 'Dokumen menunjukkan tingkat plagiat sedang (50-79%). Perbaikan teknik parafrase diperlukan.',
+            actions: [
+                'Ubah struktur kalimat secara signifikan',
+                'Gunakan sinonim yang tepat dan variasi kata',
+                'Reorganisasi urutan ide dan argumen',
+                'Tambahkan contoh dan ilustrasi pribadi'
+            ],
+            severity: 'medium'
+        });
+        
+        recommendations.push({
+            priority: 'SEDANG',
+            type: 'content',
+            title: 'Tambahkan Konten Original',
+            description: 'Perkaya dokumen dengan perspektif dan analisis original Anda.',
+            actions: [
+                'Tambahkan analisis kritis dari sudut pandang Anda',
+                'Berikan contoh dari pengalaman atau penelitian tambahan',
+                'Kembangkan argumen dengan data atau studi kasus baru',
+                'Integrasikan berbagai sumber untuk perspektif yang lebih luas'
+            ],
+            severity: 'medium'
+        });
+    } else if (maxSimilarity >= 25) {
+        recommendations.push({
+            priority: 'RENDAH',
+            type: 'improvement',
+            title: 'Optimasi Orisinalitas',
+            description: 'Dokumen menunjukkan tingkat plagiat rendah (25-49%). Beberapa perbaikan minor diperlukan.',
+            actions: [
+                'Review bagian-bagian dengan kesamaan tinggi',
+                'Perkuat transisi antar paragraf dengan kata-kata Anda',
+                'Tambahkan lebih banyak interpretasi personal',
+                'Pastikan setiap kutipan memiliki sitasi yang tepat'
+            ],
+            severity: 'low'
+        });
+        
+        recommendations.push({
+            priority: 'RENDAH',
+            type: 'quality',
+            title: 'Tingkatkan Kualitas Penulisan',
+            description: 'Fokus pada peningkatan kualitas dan keunikan gaya penulisan.',
+            actions: [
+                'Variasikan struktur kalimat dan paragraf',
+                'Gunakan terminologi yang spesifik untuk bidang Anda',
+                'Kembangkan voice dan tone yang konsisten',
+                'Review dan edit untuk memastikan kejelasan ide'
+            ],
+            severity: 'low'
+        });
+    } else {
+        recommendations.push({
+            priority: 'RENDAH',
+            type: 'maintenance',
+            title: 'Pertahankan Standar Orisinalitas',
+            description: 'Dokumen menunjukkan tingkat orisinalitas yang baik (<25%). Pertahankan standar ini.',
+            actions: [
+                'Lakukan final check untuk konsistensi sitasi',
+                'Review sekali lagi untuk memastikan tidak ada plagiat tidak disengaja',
+                'Pertahankan gaya penulisan yang original',
+                'Dokumentasikan sumber inspirasi dan referensi'
+            ],
+            severity: 'info'
+        });
+    }
+    
+    // Rekomendasi berdasarkan jenis kesamaan yang ditemukan
+    const avgCosine = plagiarismResults.reduce((sum, r) => sum + r.cosineSimilarity, 0) / plagiarismResults.length;
+    const avgNgram = plagiarismResults.reduce((sum, r) => sum + r.ngramSimilarity, 0) / plagiarismResults.length;
+    const avgFingerprint = plagiarismResults.reduce((sum, r) => sum + r.fingerprintSimilarity, 0) / plagiarismResults.length;
+    
+    if (avgNgram > avgCosine && avgNgram > avgFingerprint) {
+        recommendations.push({
+            priority: 'SEDANG',
+            type: 'structural',
+            title: 'Variasikan Struktur Kalimat',
+            description: 'Deteksi tinggi pada N-gram menunjukkan penggunaan frasa yang mirip secara berturut-turut.',
+            actions: [
+                'Ubah urutan kata dalam kalimat',
+                'Gunakan voice aktif dan pasif secara bergantian',
+                'Variasikan panjang kalimat',
+                'Pisahkan kalimat panjang menjadi beberapa kalimat pendek'
+            ],
+            severity: 'medium'
+        });
+    }
+    
+    if (avgFingerprint > avgCosine && avgFingerprint > avgNgram) {
+        recommendations.push({
+            priority: 'WAJIB',
+            type: 'rewrite',
+            title: 'Hindari Copy-Paste Langsung',
+            description: 'Deteksi tinggi pada Fingerprint menunjukkan kemungkinan copy-paste langsung dari sumber.',
+            actions: [
+                'Identifikasi bagian yang di-copy paste langsung',
+                'Tulis ulang dengan kata-kata sendiri',
+                'Berikan kutipan langsung dengan tanda kutip jika diperlukan',
+                'Pastikan setiap kutipan memiliki sitasi yang tepat'
+            ],
+            severity: 'high'
+        });
+    }
+    
+    // Rekomendasi berdasarkan panjang teks
+    const wordCount = targetText.split(' ').length;
+    if (wordCount < 500) {
+        recommendations.push({
+            priority: 'SEDANG',
+            type: 'expansion',
+            title: 'Kembangkan Konten Lebih Luas',
+            description: 'Dokumen relatif pendek. Pengembangan konten akan mengurangi tingkat kesamaan.',
+            actions: [
+                'Tambahkan lebih banyak detail dan penjelasan',
+                'Berikan contoh dan ilustrasi yang relevan',
+                'Kembangkan argumen dengan sub-poin yang lebih detail',
+                'Tambahkan analisis mendalam dari berbagai perspektif'
+            ],
+            severity: 'medium'
+        });
+    }
+    
+    return recommendations;
+}
+
 // Fungsi utama untuk deteksi plagiat
 function detectPlagiarism(targetText, sourceText) {
     const preprocessedTarget = preprocessText(targetText);
@@ -328,7 +487,6 @@ app.post('/upload-reference', upload.single('referenceFile'), async (req, res) =
         
         console.log(`Processing reference file: ${originalName}`);
         
-        // Ekstrak teks dari file berdasarkan format
         const rawContent = await extractTextFromFile(filePath, originalName);
         const content = validateAndSanitizeText(rawContent, originalName);
         
@@ -343,7 +501,6 @@ app.post('/upload-reference', upload.single('referenceFile'), async (req, res) =
         
         documentDatabase.push(document);
         
-        // Hapus file setelah diproses
         fs.unlinkSync(filePath);
         
         console.log(`Reference document added: ${originalName} (${content.length} characters)`);
@@ -357,7 +514,6 @@ app.post('/upload-reference', upload.single('referenceFile'), async (req, res) =
         });
     } catch (error) {
         console.error('Error uploading reference:', error.message);
-        // Hapus file jika ada error
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
@@ -365,14 +521,13 @@ app.post('/upload-reference', upload.single('referenceFile'), async (req, res) =
     }
 });
 
-// Route untuk cek plagiat
+// Route untuk cek plagiat (ENHANCED dengan history dan AI recommendations)
 app.post('/check-plagiarism', upload.single('targetFile'), async (req, res) => {
     try {
         let targetText = '';
         let fileName = 'Text Input';
         
         if (req.file) {
-            // Jika file diupload
             const filePath = req.file.path;
             fileName = req.file.originalname;
             console.log(`Processing target file: ${fileName}`);
@@ -380,9 +535,8 @@ app.post('/check-plagiarism', upload.single('targetFile'), async (req, res) => {
             const rawContent = await extractTextFromFile(filePath, fileName);
             targetText = validateAndSanitizeText(rawContent, fileName);
             
-            fs.unlinkSync(filePath); // Hapus file setelah diproses
+            fs.unlinkSync(filePath);
         } else if (req.body.text) {
-            // Jika teks langsung diinput
             targetText = validateAndSanitizeText(req.body.text, 'Direct Text Input');
             fileName = 'Direct Text Input';
         } else {
@@ -434,6 +588,34 @@ app.post('/check-plagiarism', upload.single('targetFile'), async (req, res) => {
             color = 'yellow';
         }
         
+        // NEW: Generate AI Recommendations
+        const aiRecommendations = generateAIRecommendations(results, targetText);
+        
+        // NEW: Save to history
+        const historyEntry = {
+            id: Date.now().toString(),
+            fileName: fileName,
+            checkDate: new Date().toISOString(),
+            maxSimilarity: maxSimilarity,
+            status: status,
+            totalDocumentsChecked: documentDatabase.length,
+            textLength: targetText.length,
+            detailedResults: results.slice(0, 10),
+            aiRecommendations: aiRecommendations,
+            summary: {
+                avgCosine: Math.round(results.reduce((sum, r) => sum + r.cosineSimilarity, 0) / results.length),
+                avgNgram: Math.round(results.reduce((sum, r) => sum + r.ngramSimilarity, 0) / results.length),
+                avgFingerprint: Math.round(results.reduce((sum, r) => sum + r.fingerprintSimilarity, 0) / results.length)
+            }
+        };
+        
+        historyDatabase.push(historyEntry);
+        
+        // Limit history to last 50 entries
+        if (historyDatabase.length > 50) {
+            historyDatabase = historyDatabase.slice(-50);
+        }
+        
         console.log(`Plagiarism check completed. Max similarity: ${maxSimilarity}% (${status})`);
         
         res.json({
@@ -444,18 +626,90 @@ app.post('/check-plagiarism', upload.single('targetFile'), async (req, res) => {
             maxSimilarity: maxSimilarity,
             totalDocumentsChecked: documentDatabase.length,
             textLength: targetText.length,
-            detailedResults: results.slice(0, 10), // Tampilkan 10 hasil teratas
+            detailedResults: results.slice(0, 10),
+            aiRecommendations: aiRecommendations, // NEW
+            historyId: historyEntry.id, // NEW
             timestamp: new Date().toISOString()
         });
         
     } catch (error) {
         console.error('Error checking plagiarism:', error.message);
-        // Hapus file jika ada error
         if (req.file && fs.existsSync(req.file.path)) {
             fs.unlinkSync(req.file.path);
         }
         res.status(500).json({ error: error.message });
     }
+});
+
+// NEW: Route untuk mendapatkan history pemeriksaan
+app.get('/check-history', (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const startIndex = (page - 1) * limit;
+    const endIndex = startIndex + limit;
+    
+    const sortedHistory = historyDatabase.sort((a, b) => new Date(b.checkDate) - new Date(a.checkDate));
+    const paginatedHistory = sortedHistory.slice(startIndex, endIndex);
+    
+    const historyWithSummary = paginatedHistory.map(entry => ({
+        id: entry.id,
+        fileName: entry.fileName,
+        checkDate: entry.checkDate,
+        maxSimilarity: entry.maxSimilarity,
+        status: entry.status,
+        totalDocumentsChecked: entry.totalDocumentsChecked,
+        textLength: entry.textLength,
+        recommendationCount: entry.aiRecommendations ? entry.aiRecommendations.length : 0,
+        criticalIssues: entry.aiRecommendations ? entry.aiRecommendations.filter(r => r.priority === 'WAJIB').length : 0,
+        summary: entry.summary
+    }));
+    
+    res.json({
+        success: true,
+        history: historyWithSummary,
+        pagination: {
+            currentPage: page,
+            totalPages: Math.ceil(historyDatabase.length / limit),
+            totalEntries: historyDatabase.length,
+            hasNext: endIndex < historyDatabase.length,
+            hasPrev: startIndex > 0
+        }
+    });
+});
+
+// NEW: Route untuk mendapatkan detail history berdasarkan ID
+app.get('/check-history/:id', (req, res) => {
+    const historyId = req.params.id;
+    const historyEntry = historyDatabase.find(entry => entry.id === historyId);
+    
+    if (!historyEntry) {
+        return res.status(404).json({ error: 'History entry not found' });
+    }
+    
+    res.json({
+        success: true,
+        historyEntry: historyEntry
+    });
+});
+
+// NEW: Route untuk hapus history entry
+app.delete('/check-history/:id', (req, res) => {
+    const historyId = req.params.id;
+    const initialLength = historyDatabase.length;
+    
+    historyDatabase = historyDatabase.filter(entry => entry.id !== historyId);
+    
+    if (historyDatabase.length < initialLength) {
+        res.json({ success: true, message: 'History entry deleted successfully' });
+    } else {
+        res.status(404).json({ error: 'History entry not found' });
+    }
+});
+
+// NEW: Route untuk clear semua history
+app.delete('/check-history', (req, res) => {
+    historyDatabase = [];
+    res.json({ success: true, message: 'All history entries cleared successfully' });
 });
 
 // Route untuk mendapatkan daftar dokumen referensi
@@ -491,15 +745,343 @@ app.delete('/reference-documents/:id', (req, res) => {
     }
 });
 
+// NEW: Route untuk mendapatkan statistik dashboard
+app.get('/api/dashboard-stats', (req, res) => {
+    const totalChecks = historyDatabase.length;
+    const totalReferences = documentDatabase.length;
+    
+    // Statistik history
+    const recentChecks = historyDatabase.slice(-7); // 7 pemeriksaan terakhir
+    const avgSimilarity = recentChecks.length > 0 
+        ? Math.round(recentChecks.reduce((sum, check) => sum + check.maxSimilarity, 0) / recentChecks.length)
+        : 0;
+    
+    // Distribusi status
+    const statusDistribution = {
+        safe: historyDatabase.filter(h => h.maxSimilarity < 25).length,
+        low: historyDatabase.filter(h => h.maxSimilarity >= 25 && h.maxSimilarity < 50).length,
+        medium: historyDatabase.filter(h => h.maxSimilarity >= 50 && h.maxSimilarity < 80).length,
+        high: historyDatabase.filter(h => h.maxSimilarity >= 80).length
+    };
+    
+    // Trending files (berdasarkan ekstensi)
+    const fileTypeStats = {};
+    historyDatabase.forEach(entry => {
+        const ext = path.extname(entry.fileName).toLowerCase() || '.txt';
+        fileTypeStats[ext] = (fileTypeStats[ext] || 0) + 1;
+    });
+    
+    // Rekomendasi prioritas tinggi
+    const criticalRecommendations = historyDatabase
+        .flatMap(entry => entry.aiRecommendations || [])
+        .filter(rec => rec.priority === 'WAJIB')
+        .length;
+    
+    res.json({
+        success: true,
+        stats: {
+            totalChecks,
+            totalReferences,
+            avgSimilarity,
+            statusDistribution,
+            fileTypeStats,
+            criticalRecommendations,
+            recentActivity: recentChecks.map(check => ({
+                id: check.id,
+                fileName: check.fileName,
+                similarity: check.maxSimilarity,
+                date: check.checkDate,
+                status: check.status
+            }))
+        }
+    });
+});
+
+// NEW: Route untuk export history ke CSV
+app.get('/api/export-history', (req, res) => {
+    const format = req.query.format || 'csv';
+    
+    if (format === 'csv') {
+        let csvContent = 'ID,File Name,Check Date,Similarity %,Status,Documents Checked,Text Length,Critical Issues\n';
+        
+        historyDatabase.forEach(entry => {
+            const criticalIssues = entry.aiRecommendations ? 
+                entry.aiRecommendations.filter(r => r.priority === 'WAJIB').length : 0;
+            
+            csvContent += `"${entry.id}","${entry.fileName}","${entry.checkDate}","${entry.maxSimilarity}","${entry.status}","${entry.totalDocumentsChecked}","${entry.textLength}","${criticalIssues}"\n`;
+        });
+        
+        res.setHeader('Content-Type', 'text/csv');
+        res.setHeader('Content-Disposition', 'attachment; filename="plagiarism_history.csv"');
+        res.send(csvContent);
+    } else {
+        res.status(400).json({ error: 'Format not supported. Use format=csv' });
+    }
+});
+
+// NEW: Route untuk mendapatkan rekomendasi berdasarkan pattern history
+app.get('/api/pattern-recommendations', (req, res) => {
+    if (historyDatabase.length < 3) {
+        return res.json({
+            success: true,
+            recommendations: [{
+                type: 'info',
+                title: 'Belum Cukup Data',
+                description: 'Lakukan minimal 3 pemeriksaan untuk mendapatkan rekomendasi berdasarkan pattern.',
+                priority: 'INFO'
+            }]
+        });
+    }
+    
+    const patternRecommendations = [];
+    
+    // Analisis pattern tingkat plagiat
+    const avgSimilarity = historyDatabase.reduce((sum, h) => sum + h.maxSimilarity, 0) / historyDatabase.length;
+    const recentAvg = historyDatabase.slice(-5).reduce((sum, h) => sum + h.maxSimilarity, 0) / Math.min(5, historyDatabase.length);
+    
+    if (recentAvg > avgSimilarity + 10) {
+        patternRecommendations.push({
+            type: 'trend',
+            title: 'Tren Peningkatan Plagiat',
+            description: `Tingkat plagiat meningkat ${Math.round(recentAvg - avgSimilarity)}% dari rata-rata historis.`,
+            priority: 'SEDANG',
+            actions: [
+                'Review dan perbaiki metode penulisan',
+                'Tingkatkan penggunaan teknik parafrase',
+                'Konsultasi dengan supervisor atau mentor',
+                'Gunakan lebih banyak sumber referensi yang beragam'
+            ]
+        });
+    }
+    
+    // Analisis pattern jenis file
+    const fileTypes = historyDatabase.map(h => path.extname(h.fileName).toLowerCase());
+    const mostProblematicType = fileTypes.reduce((acc, type) => {
+        const entries = historyDatabase.filter(h => path.extname(h.fileName).toLowerCase() === type);
+        const avgSim = entries.reduce((sum, e) => sum + e.maxSimilarity, 0) / entries.length;
+        
+        if (avgSim > (acc.avgSim || 0)) {
+            return { type, avgSim, count: entries.length };
+        }
+        return acc;
+    }, {});
+    
+    if (mostProblematicType.type && mostProblematicType.avgSim > 50) {
+        patternRecommendations.push({
+            type: 'filetype',
+            title: `Perhatian Khusus untuk File ${mostProblematicType.type.toUpperCase()}`,
+            description: `File tipe ${mostProblematicType.type} menunjukkan rata-rata plagiat ${Math.round(mostProblematicType.avgSim)}%.`,
+            priority: 'SEDANG',
+            actions: [
+                `Review proses konversi dan ekstraksi teks untuk file ${mostProblematicType.type}`,
+                'Pastikan formatting tidak mempengaruhi deteksi',
+                'Pertimbangkan untuk menggunakan format yang lebih standar',
+                'Double-check hasil ekstraksi teks'
+            ]
+        });
+    }
+    
+    // Analisis pattern waktu
+    const timePattern = historyDatabase.map(h => ({
+        hour: new Date(h.checkDate).getHours(),
+        similarity: h.maxSimilarity
+    }));
+    
+    const hourlyStats = {};
+    timePattern.forEach(({ hour, similarity }) => {
+        if (!hourlyStats[hour]) {
+            hourlyStats[hour] = { total: 0, count: 0 };
+        }
+        hourlyStats[hour].total += similarity;
+        hourlyStats[hour].count += 1;
+    });
+    
+    const hourlyAvg = Object.keys(hourlyStats).map(hour => ({
+        hour: parseInt(hour),
+        avg: hourlyStats[hour].total / hourlyStats[hour].count,
+        count: hourlyStats[hour].count
+    })).filter(stat => stat.count >= 2);
+    
+    const peakPlagiarismHour = hourlyAvg.reduce((max, current) => 
+        current.avg > max.avg ? current : max, { avg: 0 });
+    
+    if (peakPlagiarismHour.avg > avgSimilarity + 15) {
+        patternRecommendations.push({
+            type: 'timing',
+            title: 'Pattern Waktu Pemeriksaan',
+            description: `Pemeriksaan pada jam ${peakPlagiarismHour.hour}:00 menunjukkan tingkat plagiat yang lebih tinggi.`,
+            priority: 'RENDAH',
+            actions: [
+                'Pertimbangkan untuk mengecek dokumen pada waktu yang berbeda',
+                'Review kualitas penulisan berdasarkan waktu kerja',
+                'Pastikan kondisi optimal saat menulis dan mereview'
+            ]
+        });
+    }
+    
+    res.json({
+        success: true,
+        recommendations: patternRecommendations,
+        analytics: {
+            avgSimilarity: Math.round(avgSimilarity),
+            recentAvg: Math.round(recentAvg),
+            totalChecks: historyDatabase.length,
+            fileTypeDistribution: fileTypes.reduce((acc, type) => {
+                acc[type] = (acc[type] || 0) + 1;
+                return acc;
+            }, {})
+        }
+    });
+});
+
+// NEW: Route untuk AI analysis mendalam
+app.post('/api/deep-analysis', (req, res) => {
+    const { historyIds } = req.body;
+    
+    if (!historyIds || !Array.isArray(historyIds)) {
+        return res.status(400).json({ error: 'Invalid history IDs provided' });
+    }
+    
+    const selectedEntries = historyDatabase.filter(entry => historyIds.includes(entry.id));
+    
+    if (selectedEntries.length === 0) {
+        return res.status(404).json({ error: 'No matching history entries found' });
+    }
+    
+    // Deep analysis
+    const analysis = {
+        overallAssessment: '',
+        keyFindings: [],
+        detailedRecommendations: [],
+        improvementPlan: [],
+        riskAssessment: ''
+    };
+    
+    const avgSimilarity = selectedEntries.reduce((sum, e) => sum + e.maxSimilarity, 0) / selectedEntries.length;
+    const maxSimilarity = Math.max(...selectedEntries.map(e => e.maxSimilarity));
+    const minSimilarity = Math.min(...selectedEntries.map(e => e.maxSimilarity));
+    
+    // Overall Assessment
+    if (avgSimilarity >= 70) {
+        analysis.overallAssessment = 'TINGKAT RISIKO TINGGI: Dokumen-dokumen menunjukkan pola plagiat yang konsisten dan memerlukan intervensi segera.';
+    } else if (avgSimilarity >= 40) {
+        analysis.overallAssessment = 'TINGKAT RISIKO SEDANG: Ada indikasi masalah dalam teknik penulisan yang perlu diperbaiki secara sistematis.';
+    } else if (avgSimilarity >= 20) {
+        analysis.overallAssessment = 'TINGKAT RISIKO RENDAH: Kualitas penulisan sudah cukup baik, namun masih ada ruang untuk peningkatan.';
+    } else {
+        analysis.overallAssessment = 'TINGKAT RISIKO MINIMAL: Kualitas orisinalitas sangat baik, pertahankan standar ini.';
+    }
+    
+    // Key Findings
+    analysis.keyFindings = [
+        `Rata-rata tingkat kesamaan: ${Math.round(avgSimilarity)}%`,
+        `Rentang kesamaan: ${minSimilarity}% - ${maxSimilarity}%`,
+        `Variasi kualitas: ${maxSimilarity - minSimilarity > 30 ? 'Tinggi (inkonsisten)' : 'Rendah (konsisten)'}`,
+        `Jumlah dokumen dianalisis: ${selectedEntries.length}`,
+        `Dokumen dengan risiko tinggi: ${selectedEntries.filter(e => e.maxSimilarity >= 80).length}`
+    ];
+    
+    // Detailed Recommendations berdasarkan pattern
+    const algorithmAnalysis = {
+        cosine: selectedEntries.reduce((sum, e) => sum + (e.summary?.avgCosine || 0), 0) / selectedEntries.length,
+        ngram: selectedEntries.reduce((sum, e) => sum + (e.summary?.avgNgram || 0), 0) / selectedEntries.length,
+        fingerprint: selectedEntries.reduce((sum, e) => sum + (e.summary?.avgFingerprint || 0), 0) / selectedEntries.length
+    };
+    
+    if (algorithmAnalysis.ngram > algorithmAnalysis.cosine && algorithmAnalysis.ngram > algorithmAnalysis.fingerprint) {
+        analysis.detailedRecommendations.push({
+            category: 'Struktur Penulisan',
+            priority: 'TINGGI',
+            description: 'N-gram analysis menunjukkan penggunaan pola kalimat yang berulang.',
+            actionItems: [
+                'Fokus pada variasi struktur kalimat',
+                'Gunakan teknik sentence combining dan splitting',
+                'Latihan menulis dengan gaya yang berbeda-beda',
+                'Review dan edit dengan fokus pada flow kalimat'
+            ]
+        });
+    }
+    
+    if (algorithmAnalysis.fingerprint > 50) {
+        analysis.detailedRecommendations.push({
+            category: 'Orisinalitas Konten',
+            priority: 'KRITIS',
+            description: 'Fingerprint matching tinggi menunjukkan kemungkinan copy-paste yang signifikan.',
+            actionItems: [
+                'Implementasi zero-tolerance policy untuk copy-paste',
+                'Gunakan teknik parafrase yang lebih intensif',
+                'Buat outline original sebelum menulis',
+                'Consultasi dengan writing center atau mentor'
+            ]
+        });
+    }
+    
+    // Improvement Plan
+    const timelineMap = {
+        immediate: [],
+        shortTerm: [],
+        longTerm: []
+    };
+    
+    if (avgSimilarity >= 60) {
+        timelineMap.immediate.push('Stop semua aktivitas penulisan dan fokus pada pemahaman plagiat');
+        timelineMap.immediate.push('Review semua dokumen yang sudah dibuat');
+        timelineMap.shortTerm.push('Ikuti workshop atau kursus academic writing');
+        timelineMap.longTerm.push('Kembangkan personal writing style yang unique');
+    } else if (avgSimilarity >= 30) {
+        timelineMap.immediate.push('Review teknik parafrase dan sitasi');
+        timelineMap.shortTerm.push('Practice menulis dengan multiple drafts');
+        timelineMap.longTerm.push('Bangun library personal references');
+    } else {
+        timelineMap.shortTerm.push('Fine-tune writing techniques');
+        timelineMap.longTerm.push('Mentor others dalam academic writing');
+    }
+    
+    analysis.improvementPlan = [
+        { timeline: 'Segera (1-2 hari)', actions: timelineMap.immediate },
+        { timeline: 'Jangka Pendek (1-2 minggu)', actions: timelineMap.shortTerm },
+        { timeline: 'Jangka Panjang (1-3 bulan)', actions: timelineMap.longTerm }
+    ].filter(plan => plan.actions.length > 0);
+    
+    // Risk Assessment
+    const riskFactors = [];
+    if (avgSimilarity >= 70) riskFactors.push('Tingkat plagiat rata-rata tinggi');
+    if (maxSimilarity >= 90) riskFactors.push('Ada dokumen dengan plagiat ekstrem');
+    if (maxSimilarity - minSimilarity > 40) riskFactors.push('Inkonsistensi kualitas yang tinggi');
+    
+    const highRiskDocs = selectedEntries.filter(e => e.maxSimilarity >= 80).length;
+    if (highRiskDocs > selectedEntries.length * 0.3) {
+        riskFactors.push('Lebih dari 30% dokumen berisiko tinggi');
+    }
+    
+    analysis.riskAssessment = riskFactors.length > 0 
+        ? `PERHATIAN: ${riskFactors.join(', ')}. Diperlukan tindakan korektif segera.`
+        : 'Tingkat risiko dalam batas wajar, lanjutkan dengan monitoring rutin.';
+    
+    res.json({
+        success: true,
+        analysis: analysis,
+        metadata: {
+            analyzedDocuments: selectedEntries.length,
+            analysisDate: new Date().toISOString(),
+            avgSimilarity: Math.round(avgSimilarity),
+            algorithmBreakdown: algorithmAnalysis
+        }
+    });
+});
+
 // Route untuk info aplikasi
 app.get('/api/info', (req, res) => {
     res.json({
-        name: 'Plagiarism Checker',
-        version: '1.0.0',
+        name: 'Advanced Plagiarism Checker',
+        version: '2.0.0',
         supportedFormats: ['.txt', '.pdf', '.doc', '.docx', '.odt', '.rtf'],
         maxFileSize: '10MB',
         totalReferenceDocuments: documentDatabase.length,
-        algorithms: ['Cosine Similarity', 'N-gram Analysis', 'Fingerprinting']
+        totalHistoryEntries: historyDatabase.length,
+        algorithms: ['Cosine Similarity', 'N-gram Analysis', 'Fingerprinting'],
+        features: ['AI Recommendations', 'History Tracking', 'Pattern Analysis', 'Deep Analysis'],
+        lastUpdated: new Date().toISOString()
     });
 });
 
@@ -519,13 +1101,61 @@ app.use((error, req, res, next) => {
     res.status(500).json({ error: error.message || 'Internal server error' });
 });
 
+// Graceful shutdown handling
+process.on('SIGINT', () => {
+    console.log('\n🔄 Shutting down server gracefully...');
+    
+    // Optional: Save databases to files before shutdown
+    try {
+        fs.writeFileSync('backup_history.json', JSON.stringify(historyDatabase, null, 2));
+        fs.writeFileSync('backup_references.json', JSON.stringify(documentDatabase, null, 2));
+        console.log('✅ Data backed up successfully');
+    } catch (error) {
+        console.error('❌ Error backing up data:', error.message);
+    }
+    
+    process.exit(0);
+});
+
+// Optional: Load data from backup on startup
+function loadBackupData() {
+    try {
+        if (fs.existsSync('backup_history.json')) {
+            const historyBackup = JSON.parse(fs.readFileSync('backup_history.json', 'utf8'));
+            historyDatabase = historyBackup;
+            console.log(`📚 Loaded ${historyDatabase.length} history entries from backup`);
+        }
+        
+        if (fs.existsSync('backup_references.json')) {
+            const refBackup = JSON.parse(fs.readFileSync('backup_references.json', 'utf8'));
+            documentDatabase = refBackup;
+            console.log(`📁 Loaded ${documentDatabase.length} reference documents from backup`);
+        }
+    } catch (error) {
+        console.error('⚠️ Error loading backup data:', error.message);
+    }
+}
+
 // Start server
 app.listen(PORT, () => {
-    console.log(`🚀 Plagiarism Checker Server running on http://localhost:${PORT}`);
+    console.log('🚀 Advanced Plagiarism Checker Server Started!');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log(`🌐 Server running on: http://localhost:${PORT}`);
     console.log(`📁 Upload folder: ${path.join(__dirname, 'uploads')}`);
     console.log(`📄 Supported formats: .txt, .pdf, .doc, .docx, .odt, .rtf`);
     console.log(`💾 Max file size: 10MB`);
-    console.log(`🔍 Ready to check for plagiarism!`);
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🆕 NEW FEATURES:');
+    console.log('   ✅ History Tracking dengan Detail Lengkap');
+    console.log('   ✅ AI Recommendations untuk Perbaikan');
+    console.log('   ✅ Pattern Analysis & Deep Analytics');
+    console.log('   ✅ Dashboard Statistics & Export');
+    console.log('   ✅ Risk Assessment & Improvement Planning');
+    console.log('━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━');
+    console.log('🔍 Ready to check for plagiarism with AI-powered insights!');
+    
+    // Load backup data if available
+    loadBackupData();
 });
 
 module.exports = app;
