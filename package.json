@@ -1,7 +1,7 @@
 {
   "name": "advanced-plagiarism-checker",
-  "version": "2.0.0",
-  "description": "Advanced Plagiarism Checker dengan AI Recommendations, History Tracking, dan Multi-Format Document Support",
+  "version": "2.1.0",
+  "description": "Advanced Plagiarism Checker dengan AI Thinking Analysis, Download Reports, SQLite Database, dan Modular Frontend Components",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
@@ -10,16 +10,20 @@
     "install-deps": "npm install",
     "backup": "node scripts/backup.js",
     "restore": "node scripts/restore.js",
-    "clean": "rm -rf uploads/* && rm -f backup_*.json",
-    "setup": "mkdir -p uploads && mkdir -p scripts",
+    "clean": "rm -rf uploads/* && rm -f backup_*.json && rm -f plagiarism_checker.db",
+    "setup": "mkdir -p uploads && mkdir -p scripts && mkdir -p public/css && mkdir -p public/js/components",
     "build": "npm install && npm run setup",
     "lint": "echo 'Linting JavaScript files...' && node -c server.js",
-    "health-check": "curl -f http://localhost:3000/api/info || exit 1"
+    "health-check": "curl -f http://localhost:3000/api/info || exit 1",
+    "db-init": "node -e \"const sqlite3 = require('sqlite3').verbose(); const db = new sqlite3.Database('plagiarism_checker.db'); console.log('Database initialized'); db.close();\"",
+    "db-backup": "cp plagiarism_checker.db plagiarism_checker_backup_$(date +%Y%m%d_%H%M%S).db",
+    "postinstall": "npm run db-init"
   },
   "keywords": [
     "plagiarism",
     "checker",
     "ai-powered",
+    "ai-thinking",
     "nodejs",
     "express",
     "text-analysis",
@@ -35,11 +39,16 @@
     "pattern-analysis",
     "deep-analysis",
     "academic-writing",
-    "similarity-detection"
+    "similarity-detection",
+    "sqlite",
+    "download-reports",
+    "modular-frontend",
+    "exact-match-detection",
+    "persistent-storage"
   ],
   "author": {
     "name": "Mr7Gabriel",
-    "email": "gabriel@nfxl,my.id",
+    "email": "gabriel@nfxl.my.id",
     "url": "https://github.com/Mr7Gabriel"
   },
   "license": "MIT",
@@ -48,7 +57,8 @@
     "multer": "^1.4.5-lts.1",
     "cors": "^2.8.5",
     "mammoth": "^1.6.0",
-    "pdf-parse": "^1.1.1"
+    "pdf-parse": "^1.1.1",
+    "sqlite3": "^5.1.6"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
@@ -68,8 +78,9 @@
   "config": {
     "port": 3000,
     "maxFileSize": "10MB",
-    "maxHistoryEntries": 50,
-    "backupInterval": "24h"
+    "maxHistoryEntries": 1000,
+    "backupInterval": "24h",
+    "databaseFile": "plagiarism_checker.db"
   },
   "funding": {
     "type": "individual",
@@ -83,5 +94,16 @@
   "cpu": [
     "x64",
     "arm64"
-  ]
+  ],
+  "files": [
+    "server.js",
+    "public/",
+    "scripts/",
+    "README.md",
+    "LICENSE"
+  ],
+  "directories": {
+    "lib": "./public",
+    "doc": "./docs"
+  }
 }
