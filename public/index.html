@@ -9,110 +9,6 @@
     <link rel="stylesheet" href="css/styles.css">
     <link rel="stylesheet" href="css/components.css">
     <link rel="stylesheet" href="css/themes.css">
-</head>
-<body>
-    <div class="container">
-        <!-- Header Component -->
-        <div id="header-component"></div>
-
-        <div class="main-content">
-            <!-- Tab Navigation Component -->
-            <div id="tab-navigation"></div>
-
-            <!-- Tab Contents -->
-            <div id="check-tab" class="tab-content active">
-                <div id="plagiarism-checker"></div>
-            </div>
-
-            <div id="history-tab" class="tab-content">
-                <div id="history-analytics"></div>
-            </div>
-
-            <div id="reference-tab" class="tab-content">
-                <div id="reference-manager"></div>
-            </div>
-
-            <div id="dashboard-tab" class="tab-content">
-                <div id="dashboard-overview"></div>
-            </div>
-
-            <div id="about-tab" class="tab-content">
-                <div id="about-section"></div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Modal Components -->
-    <div id="history-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3 id="modal-title">📊 Detail Pemeriksaan</h3>
-                <button class="modal-close" onclick="closeModal()">&times;</button>
-            </div>
-            <div id="modal-body">
-                <!-- Content will be loaded dynamically -->
-            </div>
-        </div>
-    </div>
-
-    <!-- AI Thinking Modal -->
-    <div id="ai-thinking-modal" class="modal">
-        <div class="modal-content ai-thinking-content">
-            <div class="modal-header">
-                <h3>🤖 AI Thinking Analysis</h3>
-                <button class="modal-close" onclick="closeAIThinkingModal()">&times;</button>
-            </div>
-            <div id="ai-thinking-body">
-                <!-- AI Thinking content will be loaded here -->
-            </div>
-        </div>
-    </div>
-
-    <!-- Download Options Modal -->
-    <div id="download-modal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h3>📥 Download Report</h3>
-                <button class="modal-close" onclick="closeDownloadModal()">&times;</button>
-            </div>
-            <div id="download-body">
-                <div class="download-options">
-                    <h4>Pilih Format Download:</h4>
-                    <div class="format-grid">
-                        <button class="format-option" onclick="downloadReport('html')">
-                            <div class="format-icon">🌐</div>
-                            <div class="format-title">HTML Report</div>
-                            <div class="format-desc">File HTML lengkap dengan styling</div>
-                        </button>
-                        <button class="format-option" onclick="downloadReport('txt')">
-                            <div class="format-icon">📝</div>
-                            <div class="format-title">Text Report</div>
-                            <div class="format-desc">File teks sederhana, mudah dibaca</div>
-                        </button>
-                        <button class="format-option" onclick="downloadReport('json')">
-                            <div class="format-icon">⚙️</div>
-                            <div class="format-title">JSON Data</div>
-                            <div class="format-desc">Data terstruktur untuk processing</div>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- JavaScript Modules -->
-    <script src="js/utils.js"></script>
-    <script src="js/api.js"></script>
-    <script src="js/components/header.js"></script>
-    <script src="js/components/navigation.js"></script>
-    <script src="js/components/plagiarism-checker.js"></script>
-    <script src="js/components/history-analytics.js"></script>
-    <script src="js/components/reference-manager.js"></script>
-    <script src="js/components/dashboard.js"></script>
-    <script src="js/components/about.js"></script>
-    <script src="js/components/modals.js"></script>
-    <script src="js/components/ai-thinking.js"></script>
-    <script src="js/app.js"></script>
 
     <style>
         /* Base Styles */
@@ -506,6 +402,110 @@
             }
         }
     </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header Component -->
+        <div id="header-component"></div>
+
+        <div class="main-content">
+            <!-- Tab Navigation Component -->
+            <div id="tab-navigation"></div>
+
+            <!-- Tab Contents -->
+            <div id="check-tab" class="tab-content active">
+                <div id="plagiarism-checker"></div>
+            </div>
+
+            <div id="history-tab" class="tab-content">
+                <div id="history-analytics"></div>
+            </div>
+
+            <div id="reference-tab" class="tab-content">
+                <div id="reference-manager"></div>
+            </div>
+
+            <div id="dashboard-tab" class="tab-content">
+                <div id="dashboard-overview"></div>
+            </div>
+
+            <div id="about-tab" class="tab-content">
+                <div id="about-section"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Components -->
+    <div id="history-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modal-title">📊 Detail Pemeriksaan</h3>
+                <button class="modal-close" onclick="closeModal()">&times;</button>
+            </div>
+            <div id="modal-body">
+                <!-- Content will be loaded dynamically -->
+            </div>
+        </div>
+    </div>
+
+    <!-- AI Thinking Modal -->
+    <div id="ai-thinking-modal" class="modal">
+        <div class="modal-content ai-thinking-content">
+            <div class="modal-header">
+                <h3>🤖 AI Thinking Analysis</h3>
+                <button class="modal-close" onclick="closeAIThinkingModal()">&times;</button>
+            </div>
+            <div id="ai-thinking-body">
+                <!-- AI Thinking content will be loaded here -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Download Options Modal -->
+    <div id="download-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>📥 Download Report</h3>
+                <button class="modal-close" onclick="closeDownloadModal()">&times;</button>
+            </div>
+            <div id="download-body">
+                <div class="download-options">
+                    <h4>Pilih Format Download:</h4>
+                    <div class="format-grid">
+                        <button class="format-option" onclick="downloadReport('html')">
+                            <div class="format-icon">🌐</div>
+                            <div class="format-title">HTML Report</div>
+                            <div class="format-desc">File HTML lengkap dengan styling</div>
+                        </button>
+                        <button class="format-option" onclick="downloadReport('txt')">
+                            <div class="format-icon">📝</div>
+                            <div class="format-title">Text Report</div>
+                            <div class="format-desc">File teks sederhana, mudah dibaca</div>
+                        </button>
+                        <button class="format-option" onclick="downloadReport('json')">
+                            <div class="format-icon">⚙️</div>
+                            <div class="format-title">JSON Data</div>
+                            <div class="format-desc">Data terstruktur untuk processing</div>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript Modules -->
+    <script src="js/utils.js"></script>
+    <script src="js/api.js"></script>
+    <script src="js/components/header.js"></script>
+    <script src="js/components/navigation.js"></script>
+    <script src="js/components/plagiarism-checker.js"></script>
+    <script src="js/components/history-analytics.js"></script>
+    <script src="js/components/reference-manager.js"></script>
+    <script src="js/components/dashboard.js"></script>
+    <script src="js/components/about.js"></script>
+    <script src="js/components/modals.js"></script>
+    <script src="js/components/ai-thinking.js"></script>
+    <script src="js/app.js"></script>
 
     <script>
         // Global application state
